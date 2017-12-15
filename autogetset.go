@@ -1,6 +1,7 @@
 package autosetget
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -20,7 +21,8 @@ type DataImpl struct {
 	fieldPrivilege map[string]bool
 	privateSetFn   map[string]reflect.Value
 	privateGetFn   map[string]reflect.Value
-	obj            interface{}
+	rv             reflect.Value
+	rt             reflect.Type
 }
 
 func NewDataImpl() *DataImpl {
@@ -79,9 +81,9 @@ func (p *DataImpl) Get(key string) interface{} {
 
 	if privilegeAttr == FIELD_PUBLIC {
 
-		rv := reflect.ValueOf(p.obj)
+		rv := p.rv
 
-		value := rv.FieldByName(key)
+		value := rv.Elem().FieldByName(key)
 
 		return value.Interface()
 
@@ -90,6 +92,8 @@ func (p *DataImpl) Get(key string) interface{} {
 		if getFn, ok := p.privateGetFn[key]; ok {
 
 			in := []reflect.Value{}
+
+			fmt.Println(getFn.String())
 
 			reValue := getFn.Call(in)
 
@@ -106,13 +110,20 @@ func (p *DataImpl) Set(key string, data interface{}) {
 
 	if privilegeAttr == FIELD_PUBLIC {
 
-		rv := reflect.ValueOf(p.obj)
+		rv := p.rv
 
-		value := rv.FieldByName(key)
+		value := rv.Elem().FieldByName(key)
 
 		vdata := reflect.ValueOf(data)
 
+		//fmt.Println(reflect.TypeOf(data))
+
+		//value.SetInt(int64(data.(int)))
+
+		//fmt.Printf("vdata %v \n", vdata)
+		//
 		value.Set(vdata)
+
 	} else if privilegeAttr == FIELD_PRIVATE {
 		if setFn, ok := p.privateSetFn[key]; ok {
 
@@ -137,13 +148,13 @@ func Privilege(tag string) bool {
 	}
 }
 
-func (p *DataImpl) SetField(obj interface{}) {
+func (p *DataImpl) SetField(rt reflect.Type, rv reflect.Value) {
 
-	p.obj = obj
+	p.rt = rt
 
-	rt := reflect.TypeOf(obj)
+	p.rv = rv
 
-	rv := reflect.ValueOf(obj)
+	fmt.Println(rv.NumMethod())
 
 	for i := 0; i < rt.NumField(); i++ {
 		rfd := rt.Field(i)
@@ -162,18 +173,23 @@ func (p *DataImpl) SetField(obj interface{}) {
 		if !privilege {
 
 			// register  set
-			setFnName := "set" + strings.ToUpper(string(name[0])) + name[1:]
+			setFnName := "Set" + strings.ToUpper(string(name[0])) + name[1:]
 			setFn := rv.MethodByName(setFnName)
-			if setFn.Pointer() != 0 {
+
+			//fmt.Printf("register set func name %s\r\n func to string %s \r\n", setFnName, setFn.String())
+
+			if setFn.IsValid() {
 				p.setPrivateSetFn(name, setFn)
 			}
 
 			// register get
-
-			getFnName := "get" + strings.ToUpper(string(name[0])) + name[1:]
+			getFnName := "Get" + strings.ToUpper(string(name[0])) + name[1:]
 
 			getFn := rv.MethodByName(getFnName)
-			if getFn.Pointer() != 0 {
+
+			//fmt.Printf("register get func name %s\r\n func to string %s \r\n", getFnName, setFn.String())
+
+			if getFn.IsValid() {
 				p.setPrivateGetFn(name, getFn)
 			}
 

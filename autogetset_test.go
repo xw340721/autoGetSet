@@ -1,7 +1,6 @@
 package autosetget_test
 
 import (
-	"fmt"
 	"testing"
 
 	"reflect"
@@ -40,6 +39,99 @@ func NewData() *Data {
 	return &data
 }
 
+func reflectUint(b *testing.B) {
+	var id int
+
+	data := NewData()
+
+	id = data.Get("Id").(int)
+
+	if id != 100 {
+		b.Fail()
+	}
+
+	name := data.Get("Name").(string)
+
+	if name != "haha" {
+		b.Fail()
+	}
+
+	newId := 101
+
+	data.Set("Id", newId)
+
+	id = data.Get("Id").(int)
+
+	if id != newId {
+		b.Fail()
+	}
+
+	name2 := "haha2"
+
+	data.Set("Name", name2)
+
+	if data.Get("Name").(string) != name2 {
+		b.Fail()
+	}
+}
+
+func originUint(b *testing.B) {
+
+	var id int
+
+	data := &Data{
+		Id:   100,
+		Name: "haha",
+	}
+
+	id = data.Id
+
+	if id != 100 {
+		b.Fail()
+	}
+
+	name := data.Name
+
+	if name != "haha" {
+		b.Fail()
+	}
+
+	newId := 101
+
+	data.Id = newId
+
+	id = data.Id
+
+	if id != newId {
+		b.Fail()
+	}
+
+	name2 := "haha2"
+
+	data.Name = name2
+
+	if data.Name != name2 {
+		b.Fail()
+	}
+
+}
+
+func BenchmarkReflectRun(b *testing.B) {
+
+	for i := 0; i < b.N; i++ {
+		reflectUint(b)
+	}
+
+}
+
+func BenchmarkOriginRun(b *testing.B) {
+
+	for i := 0; i < b.N; i++ {
+		originUint(b)
+	}
+
+}
+
 func TestRun(t *testing.T) {
 
 	var id int
@@ -52,7 +144,7 @@ func TestRun(t *testing.T) {
 		t.Fail()
 	}
 
-	fmt.Println(id)
+	//fmt.Println(id)
 
 	name := data.Get("Name").(string)
 
@@ -60,7 +152,7 @@ func TestRun(t *testing.T) {
 		t.Fail()
 	}
 
-	fmt.Println(name)
+	//fmt.Println(name)
 
 	newId := 101
 
@@ -71,7 +163,7 @@ func TestRun(t *testing.T) {
 	if id != newId {
 		t.Fail()
 	}
-	fmt.Println(data.Get("Id"))
+	//fmt.Println(data.Get("Id"))
 
 	name2 := "haha2"
 
@@ -81,6 +173,5 @@ func TestRun(t *testing.T) {
 		t.Fail()
 	}
 
-	fmt.Println(data.Get("Name"))
-
+	//fmt.Println(data.Get("Name"))
 }

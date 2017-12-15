@@ -1,7 +1,6 @@
 package autosetget
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -22,7 +21,6 @@ type DataImpl struct {
 	privateSetFn   map[string]reflect.Value
 	privateGetFn   map[string]reflect.Value
 	rv             reflect.Value
-	rt             reflect.Type
 }
 
 func NewDataImpl() *DataImpl {
@@ -93,7 +91,7 @@ func (p *DataImpl) Get(key string) interface{} {
 
 			in := []reflect.Value{}
 
-			fmt.Println(getFn.String())
+			//fmt.Println(getFn.String())
 
 			reValue := getFn.Call(in)
 
@@ -149,12 +147,9 @@ func Privilege(tag string) bool {
 }
 
 func (p *DataImpl) SetField(rt reflect.Type, rv reflect.Value) {
-
-	p.rt = rt
-
 	p.rv = rv
 
-	fmt.Println(rv.NumMethod())
+	//fmt.Println(rv.NumMethod())
 
 	for i := 0; i < rt.NumField(); i++ {
 		rfd := rt.Field(i)

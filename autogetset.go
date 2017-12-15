@@ -79,9 +79,7 @@ func (p *DataImpl) Get(key string) interface{} {
 
 	if privilegeAttr == FIELD_PUBLIC {
 
-		rv := p.rv
-
-		value := rv.Elem().FieldByName(key)
+		value := p.rv.Elem().FieldByName(key)
 
 		return value.Interface()
 
@@ -108,18 +106,10 @@ func (p *DataImpl) Set(key string, data interface{}) {
 
 	if privilegeAttr == FIELD_PUBLIC {
 
-		rv := p.rv
-
-		value := rv.Elem().FieldByName(key)
+		value := p.rv.Elem().FieldByName(key)
 
 		vdata := reflect.ValueOf(data)
 
-		//fmt.Println(reflect.TypeOf(data))
-
-		//value.SetInt(int64(data.(int)))
-
-		//fmt.Printf("vdata %v \n", vdata)
-		//
 		value.Set(vdata)
 
 	} else if privilegeAttr == FIELD_PRIVATE {
@@ -148,8 +138,6 @@ func Privilege(tag string) bool {
 
 func (p *DataImpl) SetField(rt reflect.Type, rv reflect.Value) {
 	p.rv = rv
-
-	//fmt.Println(rv.NumMethod())
 
 	for i := 0; i < rt.NumField(); i++ {
 		rfd := rt.Field(i)

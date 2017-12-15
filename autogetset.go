@@ -3,14 +3,6 @@ package autosetget
 import (
 	"reflect"
 	"strings"
-	"fmt"
-)
-
-
-import (
-"fmt"
-"reflect"
-"strings"
 )
 
 const (
@@ -20,14 +12,15 @@ const (
 )
 
 type IData interface {
-	get(key string) interface{}
-	set(key string, data ...interface{})
+	Get(key string) interface{}
+	Set(key string, data interface{})
 }
 
 type DataImpl struct {
 	fieldPrivilege map[string]bool
 	privateSetFn   map[string]reflect.Value
 	privateGetFn   map[string]reflect.Value
+	obj            interface{}
 }
 
 func NewDataImpl() *DataImpl {
@@ -39,8 +32,8 @@ func NewDataImpl() *DataImpl {
 }
 
 func (p *DataImpl) setFieldPrivilege(key string, bool bool) {
-	if fieldPrivilege, ok := p.fieldPrivilege[key]; !ok {
-		fieldPrivilege = bool
+	if _, ok := p.fieldPrivilege[key]; !ok {
+		p.fieldPrivilege[key] = bool
 	}
 }
 
@@ -62,8 +55,8 @@ func (p *DataImpl) setPrivateSetFn(key string, fn reflect.Value) {
 	privilegeAttr := p.GetPrivateAttr(key)
 
 	if privilegeAttr == FIELD_PRIVATE {
-		if privilegeField, ok := p.privateSetFn[key]; !ok {
-			privilegeField = fn
+		if _, ok := p.privateSetFn[key]; !ok {
+			p.privateSetFn[key] = fn
 		}
 
 	}
@@ -73,18 +66,24 @@ func (p *DataImpl) setPrivateGetFn(key string, fn reflect.Value) {
 	privilegeAttr := p.GetPrivateAttr(key)
 
 	if privilegeAttr == FIELD_PRIVATE {
-		if privilegeField, ok := p.privateGetFn[key]; !ok {
-			privilegeField = fn
+		if _, ok := p.privateGetFn[key]; !ok {
+			p.privateGetFn[key] = fn
 		}
 
 	}
 }
 
-func (p *DataImpl) get(key string) interface{} {
+func (p *DataImpl) Get(key string) interface{} {
 
 	privilegeAttr := p.GetPrivateAttr(key)
 
 	if privilegeAttr == FIELD_PUBLIC {
+
+		rv := reflect.ValueOf(p.obj)
+
+		value := rv.FieldByName(key)
+
+		return value.Interface()
 
 	} else if privilegeAttr == FIELD_PRIVATE {
 
@@ -94,18 +93,53 @@ func (p *DataImpl) get(key string) interface{} {
 
 			reValue := getFn.Call(in)
 
+			return reValue[0].Interface()
 		}
-
 	}
 
 	return nil
 }
 
-func (p *DataImpl) set(key string, data ...interface{}) {
+func (p *DataImpl) Set(key string, data interface{}) {
 
+	privilegeAttr := p.GetPrivateAttr(key)
+
+	if privilegeAttr == FIELD_PUBLIC {
+
+		rv := reflect.ValueOf(p.obj)
+
+		value := rv.FieldByName(key)
+
+		vdata := reflect.ValueOf(data)
+
+		value.Set(vdata)
+	} else if privilegeAttr == FIELD_PRIVATE {
+		if setFn, ok := p.privateSetFn[key]; ok {
+
+			rv := reflect.ValueOf(data)
+
+			in := []reflect.Value{
+				rv,
+			}
+			setFn.Call(in)
+		}
+	}
+}
+
+func Privilege(tag string) bool {
+	switch tag {
+	case "public":
+		return true
+	case "private":
+		return false
+	default:
+		return false
+	}
 }
 
 func (p *DataImpl) SetField(obj interface{}) {
+
+	p.obj = obj
 
 	rt := reflect.TypeOf(obj)
 
@@ -122,12 +156,13 @@ func (p *DataImpl) SetField(obj interface{}) {
 		}
 
 		privilege := Privilege(tag)
+
 		p.setFieldPrivilege(name, privilege)
 
 		if !privilege {
 
 			// register  set
-			setFnName := "set" + strings.ToUpper(name[0]) + name[1:]
+			setFnName := "set" + strings.ToUpper(string(name[0])) + name[1:]
 			setFn := rv.MethodByName(setFnName)
 			if setFn.Pointer() != 0 {
 				p.setPrivateSetFn(name, setFn)
@@ -135,7 +170,7 @@ func (p *DataImpl) SetField(obj interface{}) {
 
 			// register get
 
-			getFnName := "get" + strings.ToUpper(name[0]) + name[1:]
+			getFnName := "get" + strings.ToUpper(string(name[0])) + name[1:]
 
 			getFn := rv.MethodByName(getFnName)
 			if getFn.Pointer() != 0 {
@@ -146,48 +181,6 @@ func (p *DataImpl) SetField(obj interface{}) {
 
 	}
 
-}
-
-type Data struct {
-	*DataImpl
-	Id   int    `privilege:"public"`
-	Name string `privilege:"private"`
-}
-
-func (p *Data) setName(name string) {
-	p.Name = name
-}
-
-func (p *Data) getName() string {
-	return p.Name
-}
-
-func Privilege(tag string) bool {
-	switch tag {
-	case "public":
-		return true
-	case "private":
-		return false
-	default:
-		return false
-	}
-}
-
-func (p *Data) set(key string, data ...interface{}) {
-
-}
-
-func NewData() *Data {
-
-	data := &Data{
-		DataImpl: NewDataImpl(),
-		Id:       100,
-		Name:     "haha",
-	}
-
-	data.SetField(data)
-
-	return data
 }
 
 //func main() {
